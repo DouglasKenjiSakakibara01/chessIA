@@ -61,29 +61,14 @@ class ChessGame:
                 if self.quadrado_selecionado is not None and chess.square(col, self.linhas - 1 - row) ==  self.quadrado_selecionado:
                     pygame.draw.rect(self.screen, SELECT_COLOR, (col * SQUARE_SIZE,
                                                                     row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))    
-                  
+    
+    #destaca os quadrados das possiveis jogadas da peça atual
     def draw_highlight(self,moves):
         for move in moves:
             row,col=chess.square_rank(move.to_square), chess.square_file(move.to_square)
-            pygame.draw.rect(self.screen, HIGHLIGHT,(col*SQUARE_SIZE,row*SQUARE_SIZE, SQUARE_SIZE,SQUARE_SIZE))
+            pygame.draw.rect(self.screen, HIGHLIGHT,(col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
 game=ChessGame()
-while not game.board.is_game_over():
-    '''
-    for row in range(BOARD_SIZE):
-        for col in range(BOARD_SIZE):
-            color = WHITE if (row + col) % 2 == 0 else BLACK
-            pygame.draw.rect(screen, color, (col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
-            #square = chess.square(col, linhas - 1 - row)
-            #piece = square
-            piece=board.piece_at(chess.square(col,BOARD_SIZE-1-row))
-            if piece is not None:
-                
-                image=PIECE_IMAGES[piece.symbol()]         
-                screen.blit(image, (col * SQUARE_SIZE, row * SQUARE_SIZE))
-            if quadrado_selecionado is not None and chess.square(col, linhas - 1 - row) ==  quadrado_selecionado:
-                pygame.draw.rect(screen, SELECT_COLOR, (col * SQUARE_SIZE,
-                                                                   row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))    
-    '''                
+while not game.board.is_game_over(): 
     for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -104,7 +89,7 @@ while not game.board.is_game_over():
                      move=chess.Move(game.quadrado_selecionado,square)
                      if move in game.board.legal_moves:
                           game.board.push(move)
-                          print("move:"+move)
+                          print("move")
                      game.quadrado_selecionado=None
                 '''
                 moves = list(board.legal_moves)
@@ -117,7 +102,7 @@ while not game.board.is_game_over():
     game.draw_board()
     if game.quadrado_selecionado is not None:
         moves=game.board.generate_legal_moves(from_mask=1<<game.quadrado_selecionado)    
-        game.draw_highlight(moves)                    
+        #game.draw_highlight(moves)                    
     # Update the display
     pygame.display.update()
 
