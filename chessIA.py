@@ -1,4 +1,3 @@
-import pygame
 import sys
 import chess
 
@@ -64,6 +63,7 @@ class ChessIA:
         -30, -40, -40, -50, -50, -40, -40, -30,
         -30, -40, -40, -50, -50, -40, -40, -30,
         -30, -40, -40, -50, -50, -40, -40, -30]
+       
         
 
     def evaluate_board(self,board):
@@ -99,13 +99,13 @@ class ChessIA:
         bishopsq = sum([self.bishop[i] for i in board.pieces(chess.BISHOP, chess.WHITE)])
         bishopsq = bishopsq + sum([-self.bishop[chess.square_mirror(i)]
                                     for i in board.pieces(chess.BISHOP, chess.BLACK)])
-        rooksq = sum([self.rookstable[i] for i in board.pieces(chess.ROOK, chess.WHITE)])
+        rooksq = sum([self.rook[i] for i in board.pieces(chess.ROOK, chess.WHITE)])
         rooksq = rooksq + sum([-self.rook[chess.square_mirror(i)]
                                 for i in board.pieces(chess.ROOK, chess.BLACK)])
-        queensq = sum([self.queenstable[i] for i in board.pieces(chess.QUEEN, chess.WHITE)])
+        queensq = sum([self.queen[i] for i in board.pieces(chess.QUEEN, chess.WHITE)])
         queensq = queensq + sum([-self.queen[chess.square_mirror(i)]
                                 for i in board.pieces(chess.QUEEN, chess.BLACK)])
-        kingsq = sum([self.kingstable[i] for i in board.pieces(chess.KING, chess.WHITE)])
+        kingsq = sum([self.king[i] for i in board.pieces(chess.KING, chess.WHITE)])
         kingsq = kingsq + sum([-self.king[chess.square_mirror(i)]
                                 for i in board.pieces(chess.KING, chess.BLACK)])
         
@@ -116,7 +116,7 @@ class ChessIA:
             return -score
     
     def quiesce(self,alpha, beta,board):
-        stand_pat = self.evaluate_board()
+        stand_pat = self.evaluate_board(board)
         if (stand_pat >= beta):
             return beta
         if (stand_pat > alpha):
@@ -125,7 +125,7 @@ class ChessIA:
         for move in board.legal_moves:
             if board.is_capture(move):
                 board.push(move)
-                score = -self.quiesce(-beta, -alpha)
+                score = -self.quiesce(-beta, -alpha,board)
                 board.pop()
                 if (score >= beta):
                     return beta
@@ -135,10 +135,10 @@ class ChessIA:
     def alphabeta(self,alpha, beta, depthleft,board):
         bestscore = -9999
         if (depthleft == 0):
-            return self.quiesce(alpha, beta)
+            return self.quiesce(alpha, beta,board)
         for move in board.legal_moves:
             board.push(move)
-            score = -self.alphabeta(-beta, -alpha, depthleft - 1)
+            score = -self.alphabeta(-beta, -alpha, depthleft - 1, board)
             board.pop()
             if (score >= beta):
                 return score
@@ -156,7 +156,7 @@ class ChessIA:
         beta = 100000
         for move in board.legal_moves:
             board.push(move)
-            boardValue = -self.alphabeta(-beta, -alpha, depth - 1)
+            boardValue = -self.alphabeta(-beta, -alpha, depth - 1,board)
             if boardValue > bestValue:
                 bestValue = boardValue
                 bestMove = move

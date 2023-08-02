@@ -1,7 +1,7 @@
 import pygame
 import sys
 import chess
-
+from chessIA import ChessIA
 # Definição das constantes
 WIDTH, HEIGHT = 900, 900
 BOARD_SIZE = 8
@@ -31,7 +31,6 @@ pygame.init()
 class ChessGame:
     def __init__(self):
         self.quadrado_selecionado=None
-        self.linhas=8
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.board=chess.Board()
 
@@ -55,7 +54,7 @@ class ChessGame:
                     image=PIECE_IMAGES[piece.symbol()]         
                     self.screen.blit(image, (col * SQUARE_SIZE, row * SQUARE_SIZE))
 
-                if self.quadrado_selecionado is not None and chess.square(col, self.linhas - 1 - row) ==  self.quadrado_selecionado:
+                if self.quadrado_selecionado is not None and chess.square(col, 7 - row) ==  self.quadrado_selecionado:
                     pygame.draw.rect(self.screen, SELECT_COLOR, (col * SQUARE_SIZE,
                                                                     row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))    
     
@@ -67,8 +66,10 @@ class ChessGame:
 
 
 game=ChessGame()
-while not game.board.is_game_over(): 
-    for event in pygame.event.get():
+IA=ChessIA()
+while not game.board.is_game_over() or not game.board.is_checkmate: 
+    if game.board.turn:
+        for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
@@ -77,7 +78,7 @@ while not game.board.is_game_over():
                 pos = pygame.mouse.get_pos()
                 col = pos[0] // SQUARE_SIZE
                 row = pos[1] // SQUARE_SIZE
-                square = chess.square(col, game.linhas - 1 - row)
+                square = chess.square(col, 7- row)
                 print('linha '+str(row)+' coluna '+str(col))
                 if game.quadrado_selecionado is None:
                      if game.board.piece_at(square) is not None:
@@ -96,6 +97,11 @@ while not game.board.is_game_over():
                             break
 
                 '''
+    else:
+        move=IA.selectmove(3,game.board)
+        print('vez da IA')
+        game.board.push(move)
+
     game.draw_board()
     if game.quadrado_selecionado is not None:
         moves=game.board.generate_legal_moves(from_mask=1<<game.quadrado_selecionado)    
