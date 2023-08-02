@@ -2,10 +2,7 @@ import pygame
 import sys
 import chess
 
-# Definição de constantes
-
-#linhas=8
-#quadrado_selecionado=None
+# Definição das constantes
 WIDTH, HEIGHT = 900, 900
 BOARD_SIZE = 8
 SQUARE_SIZE = WIDTH // BOARD_SIZE
@@ -13,9 +10,7 @@ BLACK = (85, 107, 47)
 WHITE = (107, 142, 35)
 SELECT_COLOR = (255,99,71)
 HIGHLIGHT=(255,99,71)
-#screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
-#board=chess.Board()
 PIECE_IMAGES = {
     'N': pygame.image.load('images/wn.png'),
     'K': pygame.image.load('images/wk.png'),
@@ -41,12 +36,13 @@ class ChessGame:
         self.board=chess.Board()
 
 
-
+    #Pega a posicao da linha e da coluna do quadrado do tabuleiro que foi clicado
+    '''
     def get_row_col_from_mouse(pos):
         x, y = pos
         row, col = y // SQUARE_SIZE, x // SQUARE_SIZE
         return row, col
-
+    '''
     def draw_board(self):
      
         for row in range(BOARD_SIZE):
@@ -58,6 +54,7 @@ class ChessGame:
                     
                     image=PIECE_IMAGES[piece.symbol()]         
                     self.screen.blit(image, (col * SQUARE_SIZE, row * SQUARE_SIZE))
+
                 if self.quadrado_selecionado is not None and chess.square(col, self.linhas - 1 - row) ==  self.quadrado_selecionado:
                     pygame.draw.rect(self.screen, SELECT_COLOR, (col * SQUARE_SIZE,
                                                                     row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))    
@@ -67,6 +64,8 @@ class ChessGame:
         for move in moves:
             row,col=chess.square_rank(move.to_square), chess.square_file(move.to_square)
             pygame.draw.rect(self.screen, HIGHLIGHT,(col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+
+
 game=ChessGame()
 while not game.board.is_game_over(): 
     for event in pygame.event.get():
@@ -74,13 +73,11 @@ while not game.board.is_game_over():
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                # Obtendo a posição do clique do mouse
-                
+                # Pega a posicao da linha e da coluna do quadrado do tabuleiro que foi clicado
                 pos = pygame.mouse.get_pos()
                 col = pos[0] // SQUARE_SIZE
                 row = pos[1] // SQUARE_SIZE
                 square = chess.square(col, game.linhas - 1 - row)
-                #quadrado_selecionado=square
                 print('linha '+str(row)+' coluna '+str(col))
                 if game.quadrado_selecionado is None:
                      if game.board.piece_at(square) is not None:
@@ -103,10 +100,10 @@ while not game.board.is_game_over():
     if game.quadrado_selecionado is not None:
         moves=game.board.generate_legal_moves(from_mask=1<<game.quadrado_selecionado)    
         #game.draw_highlight(moves)                    
-    # Update the display
+    
     pygame.display.update()
 
-# Quit the game when it's over
+
 pygame.quit()
 
 
