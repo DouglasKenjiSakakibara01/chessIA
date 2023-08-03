@@ -76,7 +76,7 @@ class ChessGame:
 
 game=ChessGame()
 IA=ChessIA()
-while not game.board.is_game_over() or not game.board.is_checkmate: 
+while not game.board.is_game_over() or not game.board.is_checkmate() or not game.board.is_stalemate() or not game.board.is_insufficient_material(): 
     if game.board.turn:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -130,7 +130,7 @@ while not game.board.is_game_over() or not game.board.is_checkmate:
     '''
     pygame.display.update()
 
-
+print('Jogo encerrado')
 pygame.quit()
 
 
