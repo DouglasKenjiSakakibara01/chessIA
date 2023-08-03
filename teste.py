@@ -2,7 +2,13 @@
 import chess 
 import pygame
 board=chess.Board()
-
+WIDTH, HEIGHT = 900, 900
+BOARD_SIZE = 8
+SQUARE_SIZE = WIDTH // BOARD_SIZE
+BLACK = (85, 107, 47)
+WHITE = (107, 142, 35)
+SELECT_COLOR = (255,99,71)
+HIGHLIGHT=(255,99,71)
 PIECE_IMAGES = {
     'N': pygame.image.load('images/wn.png'),
     'K': pygame.image.load('images/wk.png'),
@@ -19,5 +25,4 @@ PIECE_IMAGES = {
 }
 piece=board.piece_at(chess.square(0,0))
 
-if piece != 'r':
-    image = PIECE_IMAGES[piece]
+print(board.legal_moves)

@@ -64,6 +64,15 @@ class ChessGame:
             row,col=chess.square_rank(move.to_square), chess.square_file(move.to_square)
             pygame.draw.rect(self.screen, HIGHLIGHT,(col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
 
+    def get_promotion(self):
+        selecionado=input("Digite a peça que deseja promover(r,n,q,b):")
+        if self.board.turn:
+            image=PIECE_IMAGES[selecionado.upper().symbol()] 
+        else:
+            image=PIECE_IMAGES[selecionado.symbol()] 
+        return image
+
+
 
 game=ChessGame()
 IA=ChessIA()
@@ -86,8 +95,13 @@ while not game.board.is_game_over() or not game.board.is_checkmate:
                 else:
                      move=chess.Move(game.quadrado_selecionado,square)
                      if move in game.board.legal_moves:
-                          game.board.push(move)
-                          print("move")
+                        if game.board.piece_type_at(
+                                    game.quadrado_selecionado) == chess.PAWN and chess.square_rank(square) == 7:
+                            promotion=game.get_promotion()
+                            if promotion is not None:
+                                game.screen.blit(promotion, (col * SQUARE_SIZE, row * SQUARE_SIZE))
+                        game.board.push(move)
+                        print("move")
                      game.quadrado_selecionado=None
                 '''
                 moves = list(board.legal_moves)
@@ -99,14 +113,21 @@ while not game.board.is_game_over() or not game.board.is_checkmate:
                 '''
     else:
         move=IA.selectmove(3,game.board)
+        if game.board.piece_type_at(move.to_square) == chess.PAWN and chess.square_rank(square) == 0:
+                            promotion=game.get_promotion()
+                            if promotion is not None:
+                                game.screen.blit(promotion, (col * SQUARE_SIZE, row * SQUARE_SIZE))
+                            game.board.push(move)
+                            
         print('vez da IA')
         game.board.push(move)
 
     game.draw_board()
+    '''#para destacar os movimentos disponiveis para cada peça selionada
     if game.quadrado_selecionado is not None:
         moves=game.board.generate_legal_moves(from_mask=1<<game.quadrado_selecionado)    
         #game.draw_highlight(moves)                    
-    
+    '''
     pygame.display.update()
 
 

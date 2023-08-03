@@ -3,7 +3,7 @@ import chess
 
 class ChessIA:
     def __init__(self):
-        #tabelas de pontuacao de cada peça do jogo
+        #tabelas de pontuacao de cada posicao da peça do jogo
         self.pawn = [
         0, 0, 0, 0, 0, 0, 0, 0,
         5, 10, 10, -20, -20, 10, 10, 5,
@@ -114,7 +114,7 @@ class ChessIA:
             return score
         else:
             return -score
-    
+    #calcula o valor final do tabuleiro
     def quiesce(self,alpha, beta,board):
         stand_pat = self.evaluate_board(board)
         if (stand_pat >= beta):
@@ -123,6 +123,7 @@ class ChessIA:
             alpha = stand_pat
 
         for move in board.legal_moves:
+            #se o movimento gerar uma captura da peça, deve simular essa captura
             if board.is_capture(move):
                 board.push(move)
                 score = -self.quiesce(-beta, -alpha,board)
@@ -132,10 +133,12 @@ class ChessIA:
                 if (score > alpha):
                     alpha = score
         return alpha        
+    #explora os movimentos possiveis a partir do movimento atual feito
     def alphabeta(self,alpha, beta, depthleft,board):
         bestscore = -9999
         if (depthleft == 0):
             return self.quiesce(alpha, beta,board)
+        
         for move in board.legal_moves:
             board.push(move)
             score = -self.alphabeta(-beta, -alpha, depthleft - 1, board)
@@ -148,12 +151,13 @@ class ChessIA:
                 alpha = score
         return bestscore
      
-
+#escolhe o melhor movimento posssivel para o jogador
     def selectmove(self,depth,board):
         bestMove = chess.Move.null()
         bestValue = -99999
         alpha = -100000
-        beta = 100000
+        beta = 100000#score maximo
+        #testa todos os movimentos possiveis do jogador
         for move in board.legal_moves:
             board.push(move)
             boardValue = -self.alphabeta(-beta, -alpha, depth - 1,board)
