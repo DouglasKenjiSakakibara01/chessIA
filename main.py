@@ -36,13 +36,7 @@ class ChessGame:
         self.board=chess.Board()
 
 
-    #Pega a posicao da linha e da coluna do quadrado do tabuleiro que foi clicado
-    '''
-    def get_row_col_from_mouse(pos):
-        x, y = pos
-        row, col = y // SQUARE_SIZE, x // SQUARE_SIZE
-        return row, col
-    '''
+    
     def draw_board(self):
      
         for row in range(BOARD_SIZE):
@@ -79,7 +73,7 @@ game=ChessGame()
 IA=ChessIA()
 
 if int(opcao) == 1:
- while game.situacao_jogo : 
+ while game.situacao_jogo: 
     if game.board.turn:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -100,9 +94,13 @@ if int(opcao) == 1:
                      if move in game.board.legal_moves:
                         if game.board.piece_type_at(
                                     game.quadrado_selecionado) == chess.PAWN and chess.square_rank(square) == 7:
+                            '''
                             promotion=game.get_promotion()
+                            
                             if promotion is not None:
                                 game.screen.blit(promotion, (col * SQUARE_SIZE, row * SQUARE_SIZE))
+                            '''    
+                            print('Promocao')
                         game.board.push(move)
                         if game.board.is_game_over():
                              game.situacao_jogo=False
@@ -112,16 +110,18 @@ if int(opcao) == 1:
     else:
         move=IA.select_move(3,game.board)
         if game.board.piece_type_at(move.to_square) == chess.PAWN and chess.square_rank(move.to_square) == 7:
+                            '''
                             promotion=game.get_promotion()
                             if promotion is not None:
                                 game.screen.blit(promotion, ( chess.square_file(move.to_square) * SQUARE_SIZE, 7 * SQUARE_SIZE))
-                            game.board.push(move)
+                            '''
+                            print('Promocao')
                             
         print('vez da IA')
         game.board.push(move)
         if game.board.is_game_over():
             game.situacao_jogo=False
-
+        
     game.draw_board()
 
     #para destacar os movimentos disponiveis para cada peça selionada
@@ -136,13 +136,16 @@ if int(opcao) == 1:
 elif int(opcao) == 2:
   while game.situacao_jogo: 
     if game.board.turn:
+        print('Vez da IA do branco')
         move=IA.select_move(3,game.board)
-        if game.board.piece_type_at(move.to_square) == chess.PAWN and chess.square_rank(move.to_square) == 7:
+        if game.board.piece_type_at(move.to_square) == chess.PAWN and chess.square_rank(move.to_square) == 0:
+                            '''
                             promotion=game.get_promotion()
-                            print("Promocao")
                             if promotion is not None:
                                 game.screen.blit(promotion, ( chess.square_file(move.to_square) * SQUARE_SIZE, 7 * SQUARE_SIZE))
-                            game.board.push(move)
+                            '''    
+                            print("IA Promocao")
+
                             
         
         game.board.push(move)
@@ -152,14 +155,16 @@ elif int(opcao) == 2:
 
     
     else:
+        print('Vez da IA do preto')
         move=IA.select_move(3,game.board)
         #precisa adicionar a forma que define qual peca o peao será promovido
         if game.board.piece_type_at(move.to_square) == chess.PAWN and chess.square_rank(move.to_square) == 7:
                             promotion=game.get_promotion()
-                            print("IA Promocao")
+                            '''
                             if promotion is not None:
                                 game.screen.blit(promotion, ( chess.square_file(move.to_square) * SQUARE_SIZE, 7 * SQUARE_SIZE))
-                            game.board.push(move)
+                            '''
+                            print("IA Promocao")    
                             
         
         game.board.push(move)
