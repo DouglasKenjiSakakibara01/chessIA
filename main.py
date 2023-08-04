@@ -31,6 +31,7 @@ pygame.init()
 class ChessGame:
     def __init__(self):
         self.quadrado_selecionado=None
+        self.situacao_jogo=True
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.board=chess.Board()
 
@@ -71,12 +72,14 @@ class ChessGame:
         else:
             image=PIECE_IMAGES[selecionado.symbol()] 
         return image
-
-
-
+    
+         
+opcao=input("Jogador x IA (Digite 1) | IA x IA (Digite 2):")
 game=ChessGame()
 IA=ChessIA()
-while not game.board.is_game_over() or not game.board.is_checkmate() or not game.board.is_stalemate() or not game.board.is_insufficient_material(): 
+
+if int(opcao) == 1:
+ while game.situacao_jogo : 
     if game.board.turn:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -101,34 +104,82 @@ while not game.board.is_game_over() or not game.board.is_checkmate() or not game
                             if promotion is not None:
                                 game.screen.blit(promotion, (col * SQUARE_SIZE, row * SQUARE_SIZE))
                         game.board.push(move)
+                        if game.board.is_game_over():
+                             game.situacao_jogo=False
                         print("move")
                      game.quadrado_selecionado=None
-                '''
-                moves = list(board.legal_moves)
-                for move in moves:
-                        if move.from_square == square:
-                            board.push(move)
-                            break
-
-                '''
+               
     else:
-        move=IA.selectmove(3,game.board)
-        if game.board.piece_type_at(move.to_square) == chess.PAWN and chess.square_rank(square) == 0:
+        move=IA.select_move(3,game.board)
+        if game.board.piece_type_at(move.to_square) == chess.PAWN and chess.square_rank(move.to_square) == 7:
                             promotion=game.get_promotion()
                             if promotion is not None:
-                                game.screen.blit(promotion, (col * SQUARE_SIZE, row * SQUARE_SIZE))
+                                game.screen.blit(promotion, ( chess.square_file(move.to_square) * SQUARE_SIZE, 7 * SQUARE_SIZE))
                             game.board.push(move)
                             
         print('vez da IA')
         game.board.push(move)
+        if game.board.is_game_over():
+            game.situacao_jogo=False
 
     game.draw_board()
-    '''#para destacar os movimentos disponiveis para cada peça selionada
+
+    #para destacar os movimentos disponiveis para cada peça selionada
+    '''
     if game.quadrado_selecionado is not None:
         moves=game.board.generate_legal_moves(from_mask=1<<game.quadrado_selecionado)    
         #game.draw_highlight(moves)                    
     '''
     pygame.display.update()
+      
+      
+elif int(opcao) == 2:
+  while game.situacao_jogo: 
+    if game.board.turn:
+        move=IA.select_move(3,game.board)
+        if game.board.piece_type_at(move.to_square) == chess.PAWN and chess.square_rank(move.to_square) == 7:
+                            promotion=game.get_promotion()
+                            print("Promocao")
+                            if promotion is not None:
+                                game.screen.blit(promotion, ( chess.square_file(move.to_square) * SQUARE_SIZE, 7 * SQUARE_SIZE))
+                            game.board.push(move)
+                            
+        
+        game.board.push(move)
+        if game.board.is_game_over():
+            game.situacao_jogo=False
+        
+
+    
+    else:
+        move=IA.select_move(3,game.board)
+        #precisa adicionar a forma que define qual peca o peao será promovido
+        if game.board.piece_type_at(move.to_square) == chess.PAWN and chess.square_rank(move.to_square) == 7:
+                            promotion=game.get_promotion()
+                            print("IA Promocao")
+                            if promotion is not None:
+                                game.screen.blit(promotion, ( chess.square_file(move.to_square) * SQUARE_SIZE, 7 * SQUARE_SIZE))
+                            game.board.push(move)
+                            
+        
+        game.board.push(move)
+        if game.board.is_game_over():
+          game.situacao_jogo=False
+
+    game.draw_board()
+
+    #para destacar os movimentos disponiveis para cada peça selionada
+    '''
+    if game.quadrado_selecionado is not None:
+        moves=game.board.generate_legal_moves(from_mask=1<<game.quadrado_selecionado)    
+        #game.draw_highlight(moves)                    
+    '''
+    pygame.display.update()
+    
+          
+      
+else:
+      print("Opcao incorreta")      
 
 print('Jogo encerrado')
 pygame.quit()

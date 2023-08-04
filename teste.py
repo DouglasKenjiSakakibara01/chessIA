@@ -25,4 +25,4 @@ PIECE_IMAGES = {
 }
 piece=board.piece_at(chess.square(0,0))
 
-print(board.legal_moves)
+print(piece)

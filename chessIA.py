@@ -133,15 +133,15 @@ class ChessIA:
                 if (score > alpha):
                     alpha = score
         return alpha        
-    #explora os movimentos possiveis a partir do movimento atual feito
-    def alphabeta(self,alpha, beta, depthleft,board):
+    #otimiza a eficienca da busca pelos melhores movimentos e reduz o numero de posicoes explorados
+    def alpha_beta(self,alpha, beta, depthleft,board):
         bestscore = -9999
         if (depthleft == 0):
             return self.quiesce(alpha, beta,board)
         
         for move in board.legal_moves:
             board.push(move)
-            score = -self.alphabeta(-beta, -alpha, depthleft - 1, board)
+            score = -self.alpha_beta(-beta, -alpha, depthleft - 1, board)
             board.pop()
             if (score >= beta):
                 return score
@@ -152,7 +152,7 @@ class ChessIA:
         return bestscore
      
 #escolhe o melhor movimento posssivel para o jogador
-    def selectmove(self,depth,board):
+    def select_move(self,depth,board):
         bestMove = chess.Move.null()
         bestValue = -99999
         alpha = -100000
@@ -160,7 +160,7 @@ class ChessIA:
         #testa todos os movimentos possiveis do jogador
         for move in board.legal_moves:
             board.push(move)
-            boardValue = -self.alphabeta(-beta, -alpha, depth - 1,board)
+            boardValue = -self.alpha_beta(-beta, -alpha, depth - 1,board)
             if boardValue > bestValue:
                 bestValue = boardValue
                 bestMove = move
