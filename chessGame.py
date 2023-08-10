@@ -72,13 +72,18 @@ class ChessGame:
                                POSSIBLE_MOVE_SIZE)
 
 
-    def get_promotion(self):
-        selecionado=input("Digite a peça que deseja promover(r,n,q,b):")
-        if self.board.turn:
-            image=PIECE_IMAGES[selecionado.upper().symbol()] 
-        else:
-            image=PIECE_IMAGES[selecionado.symbol()] 
-        return image
+    def get_promotion(self,color):
+        selected=input("Digite a peça que deseja promover(r,n,q,b):")
+        if selected == 'r':
+            promotion= chess.Piece(chess.ROOK, color)
+        elif selected == 'n':
+            promotion= chess.Piece(chess.KNIGHT, color)
+        elif selected == 'q':
+            promotion= chess.Piece(chess.QUEEN, color)
+        elif selected == 'b':
+            promotion= chess.Piece(chess.BISHOP, color)
+        
+        return promotion
     
 
     def player_move(self):
@@ -99,12 +104,26 @@ class ChessGame:
                         print('Entrou no for do move')
                         if self.board.piece_type_at(self.selected_square) == chess.PAWN and (chess.square_rank(square) == 7 or chess.square_rank(square) == 0 ):
                             print('Promocao')
-                            promotion = self.get_promotion()
+                            if self.board.turn():
+                                promotion = self.get_promotion(chess.WHITE)
+                            else:
+                                promotion = self.get_promotion(chess.BLACK)    
+                            
                             if promotion is not None:
-                                self.screen.blit(promotion, (col * SQUARE_SIZE, row * SQUARE_SIZE))
+                                self.board.push(move)
+                                self.tabuleiro.set_piece_at(move.to_square, promotion)
+                                promotion=None
+                                self.selected_square=None
+                                return move
+                        elif self.board.is_castling(move):
+                            self.selected_square=None
+                            return move
+                        elif self.board.is_en_passant(move):
+                            self.selected_square=None
+                            return move
+                            
                         self.selected_square=None
                         return move
-                    
                     self.selected_square = None
                 '''
                 if self.board.piece_at(square) is not None:

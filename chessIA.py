@@ -114,7 +114,7 @@ class ChessIA:
             return score
         else:
             return -score
-    #calcula o valor final do tabuleiro
+    #melhora a avaliacao dos movimentos no tabuleiro
     def quiesce(self,alpha, beta,board):
         stand_pat = self.evaluate_board(board)
         if (stand_pat >= beta):
