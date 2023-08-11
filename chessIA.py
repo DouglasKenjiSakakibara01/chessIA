@@ -68,7 +68,7 @@ class ChessIA:
 
     def evaluate_board(self,board):
         if board.is_checkmate():
-                if board.turn:#caso seja a vez do jogador branco, significa que o jogador preto ganhou
+                if board.turn:#caso seja a vez da IA jogar, significa que ela perdeu
                     return -9999
                 else:
                     return 9999

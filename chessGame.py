@@ -1,7 +1,7 @@
 import chess
 import pygame
-
 from chessIA import ChessIA
+from stockfish import Stockfish
 import colors
 
 # Definição das constantes
@@ -156,7 +156,20 @@ class ChessGame:
             
         return move
     
-    
+    def stockfish(self):
+
+        print('vez stockfish')
+        #caminho do arquivo executavel do stockfish
+        stockfish = Stockfish("stockfish/stockfish/stockfish-ubuntu-x86-64-modern")
+        stockfish.set_fen_position(self.board.fen())
+        stockfish.set_depth(5)
+        stockfish.set_skill_level(5) 
+        move = chess.Move.from_uci(stockfish.get_best_move())#forma padrão de representar movimentos de xadrez em formato de texto.
+        return move
+        
+        
+
+
     def play(self, players):
         while self.game_situation:
             self.draw_board()
@@ -164,6 +177,11 @@ class ChessGame:
 
             player = players[0 if self.board.turn else 1]
             move = self.player_move() if player else self.cpu_move()
+            if not players[0] and not players[1]:
+                move=self.cpu_move() if player else self.stockfish()
+
+            else:
+                move=self.player_move() if player else self.cpu_move()
 
             if move is not None:
                 self.board.push(move)

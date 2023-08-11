@@ -27,7 +27,7 @@ qstGame = '''
 
 qstPlayers = '''
 <1> Jogador x IA
-<2> IA x IA
+<2> IA x Stockfish
 <3> Jogador x Jogador
 <0> Sair
 => '''
