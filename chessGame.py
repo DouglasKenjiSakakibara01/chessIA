@@ -35,6 +35,8 @@ class ChessGame:
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.board = chess.Board(board) if board is not None else chess.Board()
         self.IA = ChessIA()
+        self.winner=None
+        
 
 
     def draw_board(self):
@@ -186,4 +188,15 @@ class ChessGame:
             if move is not None:
                 self.board.push(move)
                 if self.board.is_game_over():
+                    if self.board.turn:
+                        self.winner="Preto"
+                    else:
+                        self.winner="White"    
                     self.game_situation = False
+                    
+    def test_file(self):
+        file = open("teste.txt", "w")
+        file.write(f" Vencedor:{self.winner}\n")
+        #file.write(f"Jogadas do branco:{}\n")
+        #file.write(f"Jogadas do preto:{}\n")
+        file.close()
