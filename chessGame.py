@@ -1,7 +1,19 @@
 import chess
 import pygame
-from chessIA import ChessIA
+import threading
+import time
+import queue
 from stockfish import Stockfish
+
+from chessIA import ChessIA
+
+DEBUG = {
+    'LOG': True,
+    'RENDER_AI_MOVES': False
+}
+
+def log(str):
+    if DEBUG['LOG']: print(str)
 
 COLORS = {
     'BLACK_TILE': (70, 70, 70),
@@ -40,7 +52,7 @@ PIECE_IMAGES = { k: pygame.transform.scale_by(v, SCALE) for k, v in  PIECE_IMAGE
 
 class PromotionMenu:
     def __init__(self, screen, col, turn):
-        print(col)
+        log(col)
         self.screen = screen
         self.menu_rect = pygame.Rect(col * SQUARE_SIZE, 0 if turn else HEIGHT - (SQUARE_SIZE * 4), SQUARE_SIZE, (SQUARE_SIZE * 4) + 10)
         possible_pieces = ['Q', 'N', 'R', 'B'] if turn else ['q', 'n', 'r', 'b']
@@ -56,7 +68,7 @@ class PromotionMenu:
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
-            print('event 2')
+            log('event 2')
             for idx, (piece, image) in enumerate(self.piece_images.items()):
                 x = self.menu_rect.centerx - image.get_width() // 2
                 y = self.menu_rect.y + idx * (image.get_height() + 10) + 20
@@ -79,7 +91,7 @@ class ChessGame:
         self.winner = None
         self.last_move = None
         self.legal_moves = []
-
+        self.cpu_move_queue = queue.Queue()
         self.play_functions = {
             'Player': self.player_move,
             'CPU': self.cpu_move,
@@ -151,9 +163,6 @@ class ChessGame:
             promotion_menu.draw()
             pygame.display.flip()
 
-            
-
-
     def player_move(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -162,7 +171,7 @@ class ChessGame:
                 pos = pygame.mouse.get_pos()
                 col, row = pos[0] // SQUARE_SIZE, pos[1] // SQUARE_SIZE
                 square = self.coord_to_square(col, row)
-                print('linha '+ str(row) + ' coluna ' + str(col))
+                log('linha '+ str(row) + ' coluna ' + str(col))
                 if self.selected_square is None:
                     if self.board.piece_at(square) is not None:
                         self.selected_square = square
@@ -172,23 +181,36 @@ class ChessGame:
                     if self.board.piece_type_at(self.selected_square) == chess.PAWN \
                       and row in [0, 7] \
                       and chess.Move.from_uci(str(move) + "q") in self.board.legal_moves:
-                        print('Promocao')
+                        log('Promocao')
                         promotion = self.get_promotion(col, self.board.turn)
                         if promotion is not None:
                             move = chess.Move.from_uci(str(move) + promotion)
                     self.selected_square = None
                     self.legal_moves = []
                     if move in self.board.legal_moves:
-                        print('Movimento válido')
+                        log('Movimento válido')
                         return move
 
     def cpu_move(self):
-        print('vez da IA')
-        move = self.IA.select_move(3, self.board)
-        return move
+        log('vez da IA')
+
+        def perform_cpu_move():
+            move = self.IA.select_move(3, self.board)
+            self.cpu_move_queue.put(move)
+
+        ai_thread = threading.Thread(target=perform_cpu_move)
+        ai_thread.start()
+
+        while ai_thread.is_alive():
+            if DEBUG['RENDER_AI_MOVES']: self.draw() # Se descomentar, os movimentos sendo analisados pela IA serão renderizados
+            pygame.display.update()
+            time.sleep(0.1)  # Pequeno atraso para evitar alta utilização da CPU
+
+        return self.cpu_move_queue.get()
+
 
     def stockfish_move(self):
-        print('vez stockfish')
+        log('vez stockfish')
         #caminho do arquivo executavel do stockfish
         stockfish = Stockfish("./stockfish-ubuntu-x86-64-modern")
         stockfish.set_fen_position(self.board.fen())

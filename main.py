@@ -1,45 +1,40 @@
 import pygame
-
+import argparse
 from chessGame import ChessGame
 
-pygame.init()
-
-qstGame = '''
-███ █ █ ███ ███ ███
-█   █▄█ █▄  █▄▄ █▄▄
-███ █ █ █▄▄ ▄▄█ ▄▄█
-
-<1> Novo Jogo
-<2> Carregar Posição
-<0> Sair
-=> '''
-
-qstPlayers = '''
-<1> Jogador x IA
-<2> IA x Stockfish
-<3> Jogador x Jogador
-<0> Sair
-=> '''
+playerOpts = {
+    0: None,
+    1: "Player",
+    2: "CPU",
+    3: "Stockfish"
+}
 
 def main():
-    optGame = int(input(qstGame))
-    if optGame == 0: exit()
-    board = input("Insira o bitboard => ") if optGame == 2 else None
-    optPlayers = int(input(qstPlayers))
-    if optPlayers == 0: exit()
-    if optPlayers == 1:
-        players = ('Player', 'CPU')
-    elif optPlayers == 2:
-        players = ('CPU', 'Stockfish')
-    elif optPlayers == 3:
-        players=('Player', 'Player')
+    parser = argparse.ArgumentParser(description="Chess Game")
+    parser.add_argument("-w", "--whites", required=True, type=int, choices=[1, 2, 3], help="Quem controlará as peças brancas (Player, CPU, Stockfish)")
+    parser.add_argument("-b", "--blacks", required=True, type=int, choices=[1, 2, 3], help="Quem controlará as peças pretas  (Player, CPU, Stockfish)")
+    parser.add_argument("-bb", "--board", required=False, type=str, help="Bitboard da posição do tabuleiro. Se nulo, começa na posição inicial padrão")
+    args = parser.parse_args()
+
+    board = args.board if args.board else None
+
+    playerWhites = playerOpts[args.whites] if args.whites else None
+    if playerWhites is None:
+        print("Opção para peças brancas não fornecida.")
+        exit()
+
+    playerBlacks = playerOpts[args.blacks] if args.blacks else None
+    if playerBlacks is None:
+        print("Opção para peças pretas não fornecida.")
+        exit()
+
+    pygame.init()
 
     game = ChessGame(board)
-    game.play(players)
+    game.play((playerWhites, playerBlacks))
 
     print('Jogo encerrado')
     pygame.quit()
-
 
 if __name__ == '__main__':
     main()
