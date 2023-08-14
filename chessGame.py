@@ -2,14 +2,24 @@ import chess
 import pygame
 from chessIA import ChessIA
 from stockfish import Stockfish
-import colors
+
+COLORS = {
+    'BLACK_TILE': (70, 70, 70),
+    'WHITE_TILE': (150, 150, 150),
+    'LAST_MOVE_TO_SQUARE': (120, 120, 190),
+    'LAST_MOVE_FROM_SQUARE': (100, 100, 170),
+    'SELECTED_SQUARE': (200, 200, 0),
+    'POSSIBLE_MOVE': (100, 100, 100),
+    'PROMOTION_MENU': (255, 255, 255)
+}
 
 # Definição das constantes
-SCALE = 9/9
+SCALE = 7/9
 WIDTH, HEIGHT = int(SCALE * 900), int(SCALE * 900)
 BOARD_SIZE = 8
 SQUARE_SIZE = WIDTH // BOARD_SIZE
 POSSIBLE_MOVE_SIZE = SQUARE_SIZE / 5
+POSSIBLE_CAPTURE_SIZE = SQUARE_SIZE / 2.1
 
 PIECE_IMAGES = {
     'N': pygame.image.load('images/wn.png'),
@@ -26,7 +36,38 @@ PIECE_IMAGES = {
     'r': pygame.image.load('images/br.png'),
 }
 
-PIECE_IMAGES = {k: pygame.transform.scale_by(v, SCALE) for k, v in  PIECE_IMAGES.items()}
+PIECE_IMAGES = { k: pygame.transform.scale_by(v, SCALE) for k, v in  PIECE_IMAGES.items() }
+
+class PromotionMenu:
+    def __init__(self, screen, col, turn):
+        print(col)
+        self.screen = screen
+        self.menu_rect = pygame.Rect(col * SQUARE_SIZE, 0 if turn else HEIGHT - (SQUARE_SIZE * 4), SQUARE_SIZE, (SQUARE_SIZE * 4) + 10)
+        possible_pieces = ['Q', 'N', 'R', 'B'] if turn else ['q', 'n', 'r', 'b']
+        self.piece_images = dict((key, PIECE_IMAGES[key]) for key in possible_pieces)
+        self.selected_piece = None
+
+    def draw(self):
+        pygame.draw.rect(self.screen, COLORS['PROMOTION_MENU'], self.menu_rect)
+        for idx, (_, image) in enumerate(self.piece_images.items()):
+            x = self.menu_rect.centerx - image.get_width() // 2
+            y = self.menu_rect.y + idx * SQUARE_SIZE
+            self.screen.blit(image, (x, y))
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            print('event 2')
+            for idx, (piece, image) in enumerate(self.piece_images.items()):
+                x = self.menu_rect.centerx - image.get_width() // 2
+                y = self.menu_rect.y + idx * (image.get_height() + 10) + 20
+                piece_rect = pygame.Rect(x, y, image.get_width(), image.get_height())
+                if piece_rect.collidepoint(event.pos):
+                    self.selected_piece = piece
+            return True
+
+    def get_selected_piece(self):
+        return self.selected_piece
+
 
 class ChessGame:
     def __init__(self, board):
@@ -35,20 +76,33 @@ class ChessGame:
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.board = chess.Board(board) if board is not None else chess.Board()
         self.IA = ChessIA()
-        self.winner=None
-        
+        self.winner = None
+        self.last_move = None
+        self.legal_moves = []
 
+        self.play_functions = {
+            'Player': self.player_move,
+            'CPU': self.cpu_move,
+            'Stockfish': self.stockfish_move,
+        }
 
-    def draw_board(self):
+    def draw(self):
         for row in range(BOARD_SIZE):
             for col in range(BOARD_SIZE):
-                color = colors.WHITE_TILE if (row + col) % 2 == 0 else colors.BLACK_TILE
-                pygame.draw.rect(self.screen, color, (col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
-                piece = self.board.piece_at(chess.square(col, BOARD_SIZE - row - 1))
+                square = self.coord_to_square(col, row)
+                piece = self.board.piece_at(square)
 
-                if self.selected_square is not None and chess.square(col, 7 - row) == self.selected_square:
-                    pygame.draw.rect(self.screen, colors.SELECTED_SQUARE,
-                                     (col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+                if self.last_move is not None and square == self.last_move.to_square:
+                    self.draw_square(col, row, COLORS['LAST_MOVE_TO_SQUARE'])
+                elif self.last_move is not None and square == self.last_move.from_square:
+                    self.draw_square(col, row, COLORS['LAST_MOVE_FROM_SQUARE'])
+                elif square == self.selected_square:
+                    self.draw_square(col, row, COLORS['SELECTED_SQUARE'])
+                else:
+                    self.draw_square(col, row, COLORS['WHITE_TILE'] if (row + col) % 2 == 0 else COLORS['BLACK_TILE'])
+                
+                if square in self.legal_moves:
+                    self.draw_legal_move(square)
 
                 if piece is not None:
                     image = PIECE_IMAGES[piece.symbol()]
@@ -58,35 +112,47 @@ class ChessGame:
                     piece_y_offset = (SQUARE_SIZE - image.get_height()) // 2
                     self.screen.blit(image, (piece_x + piece_x_offset, piece_y + piece_y_offset))
 
-                if self.selected_square is not None:
-                    moves = self.board.generate_legal_moves(chess.BB_SQUARES[self.selected_square])    
-                    self.draw_possible(moves)
-
-
-    def draw_possible(self, moves):
-        for move in moves:
-            row, col = 7 - chess.square_rank(move.to_square), chess.square_file(move.to_square)
-            possible_move_x = col * SQUARE_SIZE
-            possible_move_y = row * SQUARE_SIZE
-            possible_move_offset = SQUARE_SIZE // 2
-            pygame.draw.circle(self.screen, colors.POSSIBLE_MOVE,
-                               (possible_move_x + possible_move_offset,  possible_move_y + possible_move_offset),
-                               POSSIBLE_MOVE_SIZE)
-
-
-    def get_promotion(self,color):
-        selected=input("Digite a peça que deseja promover(r,n,q,b):")
-        if selected == 'r':
-            promotion= chess.Piece(chess.ROOK, color)
-        elif selected == 'n':
-            promotion= chess.Piece(chess.KNIGHT, color)
-        elif selected == 'q':
-            promotion= chess.Piece(chess.QUEEN, color)
-        elif selected == 'b':
-            promotion= chess.Piece(chess.BISHOP, color)
+    def draw_square(self, col, row, color):
+        pygame.draw.rect(self.screen, color,
+                (col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
         
-        return promotion
-    
+    def square_to_coord(self, square):
+        chessSquare = chess.Square(square)
+        return chess.square_file(chessSquare), 7 - chess.square_rank(chessSquare)
+
+    def coord_to_square(self, col, row):
+        return chess.square(col, 7 - row)
+
+    def draw_legal_move(self, square):
+        col, row = self.square_to_coord(square)
+        legal_move_x = col * SQUARE_SIZE
+        legal_move_y = row * SQUARE_SIZE
+        legal_move_offset = SQUARE_SIZE // 2
+        capture = self.board.piece_at(square)
+        pygame.draw.circle(self.screen, COLORS['POSSIBLE_MOVE'],
+                        (legal_move_x + legal_move_offset, legal_move_y + legal_move_offset),
+                        POSSIBLE_CAPTURE_SIZE if capture else POSSIBLE_MOVE_SIZE,
+                        5 if capture else 0)
+
+    def get_promotion(self, col, turn):
+        promotion_menu = PromotionMenu(self.screen, col, turn)
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                if promotion_menu.handle_event(event):
+                    selected_piece = promotion_menu.get_selected_piece()
+                    if selected_piece is not None:
+                        return selected_piece.lower()
+                    return None
+
+            self.draw()
+            promotion_menu.draw()
+            pygame.display.flip()
+
+            
+
 
     def player_move(self):
         for event in pygame.event.get():
@@ -94,106 +160,61 @@ class ChessGame:
                 pygame.quit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
-                row, col = pos[1] // SQUARE_SIZE, pos[0] // SQUARE_SIZE
-                square = chess.square(col, 7 - row)
+                col, row = pos[0] // SQUARE_SIZE, pos[1] // SQUARE_SIZE
+                square = self.coord_to_square(col, row)
                 print('linha '+ str(row) + ' coluna ' + str(col))
                 if self.selected_square is None:
                     if self.board.piece_at(square) is not None:
                         self.selected_square = square
+                        self.legal_moves = [move.to_square for move in self.board.generate_legal_moves(chess.BB_SQUARES[self.selected_square])]
                 else:
                     move = chess.Move(self.selected_square, square)
-                    if move in self.board.legal_moves:
-                        print('Entrou no for do move')
-                        if self.board.piece_type_at(self.selected_square) == chess.PAWN and (chess.square_rank(square) == 7 or chess.square_rank(square) == 0 ):
-                            print('Promocao')
-                            if self.board.turn():
-                                promotion = self.get_promotion(chess.WHITE)
-                            else:
-                                promotion = self.get_promotion(chess.BLACK)    
-                            
-                            if promotion is not None:
-                                self.board.push(move)
-                                self.tabuleiro.set_piece_at(move.to_square, promotion)
-                                promotion=None
-                                self.selected_square=None
-                                return move
-                        elif self.board.is_castling(move):
-                            self.selected_square=None
-                            return move
-                        elif self.board.is_en_passant(move):
-                            self.selected_square=None
-                            return move
-                            
-                        self.selected_square=None
-                        return move
+                    if self.board.piece_type_at(self.selected_square) == chess.PAWN \
+                      and row in [0, 7] \
+                      and chess.Move.from_uci(str(move) + "q") in self.board.legal_moves:
+                        print('Promocao')
+                        promotion = self.get_promotion(col, self.board.turn)
+                        if promotion is not None:
+                            move = chess.Move.from_uci(str(move) + promotion)
                     self.selected_square = None
-                '''
-                if self.board.piece_at(square) is not None:
-                    self.selected_square = square
-                elif self.selected_square is not None:
-                    move = chess.Move(self.selected_square, square)
+                    self.legal_moves = []
                     if move in self.board.legal_moves:
-                        if self.board.piece_type_at(
-                                    self.selected_square) == chess.PAWN and chess.square_rank(square) == 7:
-                            promotion = self.get_promotion()
-                            if promotion is not None:
-                                self.screen.blit(promotion, (col * SQUARE_SIZE, row * SQUARE_SIZE))
-                        self.selected_square = None
+                        print('Movimento válido')
                         return move
-                    
-                    else:
-                        self.selected_square = None
-                '''                  
-                    
-
 
     def cpu_move(self):
         print('vez da IA')
         move = self.IA.select_move(3, self.board)
-
-        if self.board.piece_type_at(move.to_square) == chess.PAWN and chess.square_rank(move.to_square) == 7:
-            promotion = self.get_promotion()
-            if promotion is not None:
-                self.screen.blit(promotion, ( chess.square_file(move.to_square) * SQUARE_SIZE, 7 * SQUARE_SIZE))
-            
         return move
-    
-    def stockfish(self):
 
+    def stockfish_move(self):
         print('vez stockfish')
         #caminho do arquivo executavel do stockfish
-        stockfish = Stockfish("stockfish/stockfish/stockfish-ubuntu-x86-64-modern")
+        stockfish = Stockfish("./stockfish-ubuntu-x86-64-modern")
         stockfish.set_fen_position(self.board.fen())
         stockfish.set_depth(5)
         stockfish.set_skill_level(5) 
         move = chess.Move.from_uci(stockfish.get_best_move())#forma padrão de representar movimentos de xadrez em formato de texto.
         return move
-        
-        
-
 
     def play(self, players):
         while self.game_situation:
-            self.draw_board()
+            self.draw()
             pygame.display.update()
 
             player = players[0 if self.board.turn else 1]
-            move = self.player_move() if player else self.cpu_move()
-            if not players[0] and not players[1]:
-                move=self.cpu_move() if player else self.stockfish()
-
-            else:
-                move=self.player_move() if player else self.cpu_move()
+            move = self.play_functions[player]()
 
             if move is not None:
                 self.board.push(move)
+                self.last_move = move
                 if self.board.is_game_over():
                     if self.board.turn:
                         self.winner="Preto"
                     else:
-                        self.winner="White"    
-                    self.game_situation = False
+                        self.winner="White"
                     
+
     def test_file(self):
         file = open("teste.txt", "w")
         file.write(f" Vencedor:{self.winner}\n")

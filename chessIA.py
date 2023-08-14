@@ -63,9 +63,8 @@ class ChessIA:
         -30, -40, -40, -50, -50, -40, -40, -30,
         -30, -40, -40, -50, -50, -40, -40, -30,
         -30, -40, -40, -50, -50, -40, -40, -30]
-       
-        
-
+    
+    
     def evaluate_board(self,board):
         if board.is_checkmate():
                 if board.turn:
@@ -114,8 +113,10 @@ class ChessIA:
             return score
         else:
             return -score
+    
+    
     #melhora a avaliacao dos movimentos no tabuleiro
-    def quiesce(self,alpha, beta,board):
+    def quiesce(self, alpha, beta, board):
         stand_pat = self.evaluate_board(board)
         if (stand_pat >= beta):
             return beta
@@ -132,9 +133,11 @@ class ChessIA:
                     return beta
                 if (score > alpha):
                     alpha = score
-        return alpha        
+        return alpha
+    
+    
     #otimiza a eficienca da busca pelos melhores movimentos e reduz o numero de posicoes explorados
-    def alpha_beta(self,alpha, beta, depthleft,board):
+    def alpha_beta(self, alpha, beta, depthleft, board):
         bestscore = -9999
         if (depthleft == 0):
             return self.quiesce(alpha, beta,board)
@@ -150,9 +153,10 @@ class ChessIA:
             if (score > alpha):
                 alpha = score
         return bestscore
-     
-#escolhe o melhor movimento posssivel para o jogador
-    def select_move(self,depth,board):
+
+
+    #escolhe o melhor movimento posssivel para o jogador
+    def select_move(self, depth, board):
         bestMove = chess.Move.null()
         bestValue = -99999
         alpha = -100000
@@ -160,7 +164,7 @@ class ChessIA:
         #testa todos os movimentos possiveis do jogador
         for move in board.legal_moves:
             board.push(move)
-            boardValue = -self.alpha_beta(-beta, -alpha, depth - 1,board)
+            boardValue = -self.alpha_beta(-beta, -alpha, depth - 1, board)
             if boardValue > bestValue:
                 bestValue = boardValue
                 bestMove = move
@@ -168,7 +172,3 @@ class ChessIA:
                 alpha = boardValue
             board.pop()
         return bestMove
-     
-
-    
-
