@@ -1,7 +1,9 @@
-import sys
+import concurrent.futures
 import chess
 
-class ChessIA:
+from consts import AI_DEPTH
+
+class ChessAI:
     def __init__(self):
         #tabelas de pontuacao de cada posicao da peça do jogo
         self.pawn = [
@@ -154,9 +156,9 @@ class ChessIA:
                 alpha = score
         return bestscore
 
-
     #escolhe o melhor movimento posssivel para o jogador
-    def select_move(self, depth, board):
+    def select_move(self, board, depth=AI_DEPTH):
+        board = board.copy()
         bestMove = chess.Move.null()
         bestValue = -99999
         alpha = -100000
@@ -172,3 +174,28 @@ class ChessIA:
                 alpha = boardValue
             board.pop()
         return bestMove
+
+    def parallel_select_move(self, depth, board):
+        bestMove = chess.Move.null()
+        bestValue = -99999
+        alpha = -100000
+        beta = 100000
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = []
+            for move in board.legal_moves:
+                new_board = board.copy()
+                new_board.push(move)
+                futures.append(executor.submit(self.alpha_beta, -beta, -alpha, depth - 1, new_board))
+
+            for idx, future in enumerate(concurrent.futures.as_completed(futures)):
+                boardValue = -future.result()
+                if boardValue > bestValue:
+                    bestValue = boardValue
+                    bestMove = list(board.legal_moves)[idx]
+                if boardValue > alpha:
+                    alpha = boardValue
+
+        return bestMove
+
+chess_ai = ChessAI()

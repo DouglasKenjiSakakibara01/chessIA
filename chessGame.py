@@ -3,35 +3,11 @@ import pygame
 import threading
 import time
 import queue
-from stockfish import Stockfish
 
-from chessIA import ChessIA
-
-DEBUG = {
-    'LOG': True,
-    'RENDER_AI_MOVES': False
-}
-
-def log(str):
-    if DEBUG['LOG']: print(str)
-
-COLORS = {
-    'BLACK_TILE': (70, 70, 70),
-    'WHITE_TILE': (150, 150, 150),
-    'LAST_MOVE_TO_SQUARE': (120, 120, 190),
-    'LAST_MOVE_FROM_SQUARE': (100, 100, 170),
-    'SELECTED_SQUARE': (200, 200, 0),
-    'POSSIBLE_MOVE': (100, 100, 100),
-    'PROMOTION_MENU': (255, 255, 255)
-}
-
-# Definição das constantes
-SCALE = 7/9
-WIDTH, HEIGHT = int(SCALE * 900), int(SCALE * 900)
-BOARD_SIZE = 8
-SQUARE_SIZE = WIDTH // BOARD_SIZE
-POSSIBLE_MOVE_SIZE = SQUARE_SIZE / 5
-POSSIBLE_CAPTURE_SIZE = SQUARE_SIZE / 2.1
+from chessEngine import chess_engine
+from chessIA import chess_ai
+from consts import *
+import util
 
 PIECE_IMAGES = {
     'N': pygame.image.load('images/wn.png'),
@@ -52,7 +28,7 @@ PIECE_IMAGES = { k: pygame.transform.scale_by(v, SCALE) for k, v in  PIECE_IMAGE
 
 class PromotionMenu:
     def __init__(self, screen, col, turn):
-        log(col)
+        util.logging.log_debug(col)
         self.screen = screen
         self.menu_rect = pygame.Rect(col * SQUARE_SIZE, 0 if turn else HEIGHT - (SQUARE_SIZE * 4), SQUARE_SIZE, (SQUARE_SIZE * 4) + 10)
         possible_pieces = ['Q', 'N', 'R', 'B'] if turn else ['q', 'n', 'r', 'b']
@@ -68,7 +44,6 @@ class PromotionMenu:
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
-            log('event 2')
             for idx, (piece, image) in enumerate(self.piece_images.items()):
                 x = self.menu_rect.centerx - image.get_width() // 2
                 y = self.menu_rect.y + idx * (image.get_height() + 10) + 20
@@ -82,38 +57,35 @@ class PromotionMenu:
 
 
 class ChessGame:
-    def __init__(self, board):
+    def __init__(self, board=None):
+        if not pygame.get_init(): pygame.init()
+
+        self.game_situation = False
         self.selected_square = None
-        self.game_situation = True
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.board = chess.Board(board) if board is not None else chess.Board()
-        self.IA = ChessIA()
-        self.winner = None
         self.last_move = None
         self.legal_moves = []
-        self.cpu_move_queue = queue.Queue()
-        self.play_functions = {
-            'Player': self.player_move,
-            'CPU': self.cpu_move,
-            'Stockfish': self.stockfish_move,
-        }
+        self.next_move = None
+        self.curr_player = None
+        self.computer_move_thread = None
+        self.computer_running = False
 
     def draw(self):
         for row in range(BOARD_SIZE):
             for col in range(BOARD_SIZE):
                 square = self.coord_to_square(col, row)
                 piece = self.board.piece_at(square)
-
-                if self.last_move is not None and square == self.last_move.to_square:
+                if square == self.selected_square:
+                    self.draw_square(col, row, COLORS['SELECTED_SQUARE'])
+                elif self.last_move is not None and square == self.last_move.to_square:
                     self.draw_square(col, row, COLORS['LAST_MOVE_TO_SQUARE'])
                 elif self.last_move is not None and square == self.last_move.from_square:
                     self.draw_square(col, row, COLORS['LAST_MOVE_FROM_SQUARE'])
-                elif square == self.selected_square:
-                    self.draw_square(col, row, COLORS['SELECTED_SQUARE'])
                 else:
                     self.draw_square(col, row, COLORS['WHITE_TILE'] if (row + col) % 2 == 0 else COLORS['BLACK_TILE'])
                 
-                if square in self.legal_moves:
+                if square in self.legal_moves and self.curr_player == PLAYER:
                     self.draw_legal_move(square)
 
                 if piece is not None:
@@ -129,11 +101,11 @@ class ChessGame:
                 (col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
         
     def square_to_coord(self, square):
-        chessSquare = chess.Square(square)
-        return chess.square_file(chessSquare), 7 - chess.square_rank(chessSquare)
+        chess_square = chess.Square(square)
+        return chess.square_file(chess_square), BOARD_SIZE - 1 - chess.square_rank(chess_square)
 
     def coord_to_square(self, col, row):
-        return chess.square(col, 7 - row)
+        return chess.square(col, BOARD_SIZE - 1 - row)
 
     def draw_legal_move(self, square):
         col, row = self.square_to_coord(square)
@@ -144,7 +116,7 @@ class ChessGame:
         pygame.draw.circle(self.screen, COLORS['POSSIBLE_MOVE'],
                         (legal_move_x + legal_move_offset, legal_move_y + legal_move_offset),
                         POSSIBLE_CAPTURE_SIZE if capture else POSSIBLE_MOVE_SIZE,
-                        5 if capture else 0)
+                        POSSIBLE_CAPTURE_WIDTH if capture else 0)
 
     def get_promotion(self, col, turn):
         promotion_menu = PromotionMenu(self.screen, col, turn)
@@ -163,83 +135,66 @@ class ChessGame:
             promotion_menu.draw()
             pygame.display.flip()
 
-    def player_move(self):
+    def handle_event(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
+                self.game_situation = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
                 col, row = pos[0] // SQUARE_SIZE, pos[1] // SQUARE_SIZE
                 square = self.coord_to_square(col, row)
-                log('linha '+ str(row) + ' coluna ' + str(col))
-                if self.selected_square is None:
-                    if self.board.piece_at(square) is not None:
-                        self.selected_square = square
-                        self.legal_moves = [move.to_square for move in self.board.generate_legal_moves(chess.BB_SQUARES[self.selected_square])]
-                else:
-                    move = chess.Move(self.selected_square, square)
-                    if self.board.piece_type_at(self.selected_square) == chess.PAWN \
-                      and row in [0, 7] \
-                      and chess.Move.from_uci(str(move) + "q") in self.board.legal_moves:
-                        log('Promocao')
-                        promotion = self.get_promotion(col, self.board.turn)
-                        if promotion is not None:
-                            move = chess.Move.from_uci(str(move) + promotion)
-                    self.selected_square = None
-                    self.legal_moves = []
-                    if move in self.board.legal_moves:
-                        log('Movimento válido')
-                        return move
-
-    def cpu_move(self):
-        log('vez da IA')
-
-        def perform_cpu_move():
-            move = self.IA.select_move(3, self.board)
-            self.cpu_move_queue.put(move)
-
-        ai_thread = threading.Thread(target=perform_cpu_move)
-        ai_thread.start()
-
-        while ai_thread.is_alive():
-            if DEBUG['RENDER_AI_MOVES']: self.draw() # Se descomentar, os movimentos sendo analisados pela IA serão renderizados
-            pygame.display.update()
-            time.sleep(0.1)  # Pequeno atraso para evitar alta utilização da CPU
-
-        return self.cpu_move_queue.get()
-
-
-    def stockfish_move(self):
-        log('vez stockfish')
-        #caminho do arquivo executavel do stockfish
-        stockfish = Stockfish("./stockfish-ubuntu-x86-64-modern")
-        stockfish.set_fen_position(self.board.fen())
-        stockfish.set_depth(5)
-        stockfish.set_skill_level(5) 
-        move = chess.Move.from_uci(stockfish.get_best_move())#forma padrão de representar movimentos de xadrez em formato de texto.
-        return move
+                util.logging.log_debug('File: '+ str(row) + ' Rank: ' + str(col))
+                if self.selected_square is not None and self.curr_player == PLAYER:
+                    self.next_move = self.player_move(col, row, square)
+                if self.next_move is None and self.board.piece_at(square) is not None:
+                    self.selected_square = square
+                    self.legal_moves = [move.to_square for move in self.board.generate_legal_moves(chess.BB_SQUARES[self.selected_square])]
 
     def play(self, players):
-        while self.game_situation:
+        self.game_situation = True
+        while self.game_situation and not self.board.is_game_over(claim_draw=True):
             self.draw()
             pygame.display.update()
 
-            player = players[0 if self.board.turn else 1]
-            move = self.play_functions[player]()
+            self.handle_event()
 
-            if move is not None:
-                self.board.push(move)
-                self.last_move = move
-                if self.board.is_game_over():
-                    if self.board.turn:
-                        self.winner="Preto"
-                    else:
-                        self.winner="White"
-                    
+            self.curr_player = players[0 if self.board.turn else 1]
+            
+            if self.curr_player != PLAYER and not self.computer_running:
+                self.computer_running = True
+                self.computer_move_thread = threading.Thread(target=lambda: setattr(self, 'next_move', self.ai_move() if self.curr_player == AI else self.engine_move()))
+                self.computer_move_thread.start()
 
-    def test_file(self):
-        file = open("teste.txt", "w")
-        file.write(f" Vencedor:{self.winner}\n")
-        #file.write(f"Jogadas do branco:{}\n")
-        #file.write(f"Jogadas do preto:{}\n")
-        file.close()
+            if self.next_move is not None:
+                util.logging.log_move(self.board.turn, self.board.fullmove_number, self.board.san(self.next_move))
+                self.board.push(self.next_move)
+                self.last_move = self.next_move
+                self.selected_square = None
+                self.legal_moves = []
+                self.computer_running = False
+                self.next_move = None
+
+        return self.board.outcome(claim_draw=True).result() if self.game_situation else None
+
+    def player_move(self, col, row, square):
+        move = chess.Move(self.selected_square, square)
+        if self.board.piece_type_at(self.selected_square) == chess.PAWN \
+            and row in [0, BOARD_SIZE - 1] \
+            and chess.Move.from_uci(str(move) + "q") in self.board.legal_moves:
+            util.logging.log_debug('Promotion')
+            promotion = self.get_promotion(col, self.board.turn)
+            if promotion is not None:
+                move = chess.Move.from_uci(str(move) + promotion)
+        self.legal_moves = []
+        self.selected_square = None
+        if move in self.board.legal_moves:
+            util.logging.log_debug('Valid move')
+            return move
+
+    def ai_move(self):
+        util.logging.log_debug('AI turn')
+        return chess_ai.select_move(self.board)
+
+    def engine_move(self):
+        util.logging.log_debug('Engine turn')
+        return chess_engine.select_move(self.board)
