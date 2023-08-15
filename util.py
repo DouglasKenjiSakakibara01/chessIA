@@ -1,4 +1,4 @@
-from consts import PLAYER, AI, ENGINE, DEBUG
+from consts import DEBUG
 
 class Logging:
     def __init__(self):

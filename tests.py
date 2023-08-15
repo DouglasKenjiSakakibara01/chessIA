@@ -3,25 +3,41 @@ import chess
 from chessIA import chess_ai
 from chessEngine import chess_engine
 from chessGame import ChessGame
-from consts import AI, ENGINE
+from consts import *
 import util
 
-def test_engine(n, render):
+def test_elo(n=8, render=False):
     ia_whites = True
     players = (AI, ENGINE)
     wins, losses, draws = 0, 0, 0
+    score = 0
 
     test_fun = test_on_render if render else test_on_console
 
-    for _ in range(n):
+    for i in range(n):
+        util.logging.log(f"\nTest {i + 1}")
         result = test_fun(players)
-        if result == "1/2-1/2": draws += 1
-        elif (result == "1-0" and ia_whites) or (result == "0-1" and not ia_whites): wins += 1
-        else: losses += 1
-        util.logging.log("\nResult: " + result)
-        util.logging.log("\nWins: " + str(wins) + " | Losses: " + str(losses) + " | Draws: " + str(draws) + "\n")
+
+        if result is None:
+            break
+
+        if result == "1/2-1/2":
+            draws += 1
+            score += 1/2
+        elif (result == "1-0" and ia_whites) or (result == "0-1" and not ia_whites):
+            wins += 1
+            score += 1
+        else:
+            losses += 1
+        util.logging.log(f"\nResult: {result}")
+        util.logging.log(f"\nWins: {wins} | Losses: {losses} | Draws: {draws}\n")
         ia_whites = not ia_whites
         players = players[::-1]
+    
+    elo = ENGINE_ELO + FIDE_INITIAL_LOOKUP[score]
+
+    util.logging.log(f"\nScore: {score}")
+    util.logging.log(f"\nELO: {elo}")
     
 def test_on_console(players):
     board = chess.Board()

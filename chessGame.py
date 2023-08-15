@@ -1,8 +1,6 @@
 import chess
 import pygame
 import threading
-import time
-import queue
 
 from chessEngine import chess_engine
 from chessIA import chess_ai
@@ -143,7 +141,7 @@ class ChessGame:
                 pos = pygame.mouse.get_pos()
                 col, row = pos[0] // SQUARE_SIZE, pos[1] // SQUARE_SIZE
                 square = self.coord_to_square(col, row)
-                util.logging.log_debug('File: '+ str(row) + ' Rank: ' + str(col))
+                util.logging.log_debug(f"Row: {row} | Col: {col}")
                 if self.selected_square is not None and self.curr_player == PLAYER:
                     self.next_move = self.player_move(col, row, square)
                 if self.next_move is None and self.board.piece_at(square) is not None:
@@ -188,13 +186,13 @@ class ChessGame:
         self.legal_moves = []
         self.selected_square = None
         if move in self.board.legal_moves:
-            util.logging.log_debug('Valid move')
+            util.logging.log_debug("Valid move")
             return move
 
     def ai_move(self):
-        util.logging.log_debug('AI turn')
+        util.logging.log_debug("AI turn")
         return chess_ai.select_move(self.board)
 
     def engine_move(self):
-        util.logging.log_debug('Engine turn')
+        util.logging.log_debug("Engine turn")
         return chess_engine.select_move(self.board)
