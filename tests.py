@@ -1,6 +1,7 @@
 import chess
+import time
 
-from chessIA import chess_ai
+from chessAI import chess_ai
 from chessEngine import chess_engine
 from chessGame import ChessGame
 from consts import *
@@ -16,7 +17,7 @@ def test_elo(n=8, render=False):
 
     for i in range(n):
         util.logging.log(f"\nTest {i + 1}")
-        result = test_fun(players)
+        result, time = test_fun(players)
 
         if result is None:
             break
@@ -31,6 +32,7 @@ def test_elo(n=8, render=False):
             losses += 1
         util.logging.log(f"\nResult: {result}")
         util.logging.log(f"\nWins: {wins} | Losses: {losses} | Draws: {draws}\n")
+        if time is not None: util.logging.log(f"\nAverage AI move time: {time}s")
         ia_whites = not ia_whites
         players = players[::-1]
     
@@ -42,14 +44,23 @@ def test_elo(n=8, render=False):
 def test_on_console(players):
     board = chess.Board()
     (whites_player, blacks_player) = (chess_ai if p == AI else chess_engine for p in players)
+    move_times = []
     
     while not board.is_game_over(claim_draw=True):
-        move = whites_player.select_move(board) if board.turn else blacks_player.select_move(board)
-        util.logging.log_move(board.turn, board.fullmove_number, board.san(move))
+        start_time = time.time()
+        player = whites_player if board.turn else blacks_player
+        move = player.select_move(board)
+        end_time = time.time()
+        
+        elapsed_time = end_time - start_time
+        util.logging.log_move(board.turn, board.fullmove_number, board.san(move), elapsed_time)
+
+        if player == chess_ai: move_times.append(elapsed_time)
+        
         board.push(move)
 
-    return board.outcome(claim_draw=True).result()
+    return board.outcome(claim_draw=True).result(), sum(move_times) / len(move_times)
 
 def test_on_render(players):
     game = ChessGame()
-    return game.play(players)
+    return game.play(players), None

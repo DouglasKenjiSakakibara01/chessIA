@@ -20,5 +20,9 @@ class Logging:
     def log_move(self, turn, turn_number, move):
         if DEBUG['LOG'] or turn: self.log(f"\n{str(turn_number)}. {move}   ")
         else: self.log(f"\t{move}")
+
+    def log_move(self, turn, turn_number, move, elapsed_time):
+        if DEBUG['LOG'] or turn: self.log(f"\n{str(turn_number)}. {move} ({elapsed_time}s)")
+        else: self.log(f"\t{move} ({elapsed_time}s)")
     
 logging = Logging()

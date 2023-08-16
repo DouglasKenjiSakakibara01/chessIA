@@ -3,7 +3,7 @@ import pygame
 import threading
 
 from chessEngine import chess_engine
-from chessIA import chess_ai
+from chessAI import chess_ai
 from consts import *
 import util
 
